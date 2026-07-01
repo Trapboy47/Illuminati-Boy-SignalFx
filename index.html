@@ -952,6 +952,7 @@
 
                 addToHistory(symbol, sig);
                 playAlertSound();
+                sendBrowserNotification(symbol, sig);
             } else if (signalBox && !data.signal) {
                 signalBox.className = 'signal-box';
                 signalBox.innerHTML = `
@@ -1048,6 +1049,42 @@
         }
 
         // ============================================================
+        // NOTIFICAÇÕES DO NAVEGADOR (Web Notifications)
+        // ============================================================
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                console.warn('Este navegador não suporta notificações.');
+                return;
+            }
+            if (Notification.permission === 'default') {
+                Notification.requestPermission();
+            }
+        }
+
+        function sendBrowserNotification(symbol, signal) {
+            if (!('Notification' in window)) return;
+            if (Notification.permission !== 'granted') return;
+
+            const title = `${signal.type === 'buy' ? '🟢 COMPRA' : '🔴 VENDA'} - ${symbol}`;
+            const body = `Entrada: $${signal.entry.toFixed(2)} | SL: $${signal.stopLoss.toFixed(2)} | TP: $${signal.takeProfit.toFixed(2)}\nPadrão: ${signal.pattern}`;
+
+            try {
+                const notification = new Notification(title, {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/2921/2921222.png',
+                    tag: `${symbol}-${signal.direction}-${Date.now()}`,
+                    requireInteraction: true,
+                });
+                notification.onclick = () => {
+                    window.focus();
+                    notification.close();
+                };
+            } catch (e) {
+                console.warn('Erro ao enviar notificação:', e);
+            }
+        }
+
+        // ============================================================
         // MODAL DE CONFIGURAÇÃO DA API KEY
         // ============================================================
         function openConfig() {
@@ -1125,6 +1162,7 @@
         // INICIALIZAÇÃO
         // ============================================================
         window.addEventListener('DOMContentLoaded', () => {
+            requestNotificationPermission();
             if (apiKey) {
                 startAutoUpdate();
             } else {
