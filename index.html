@@ -602,13 +602,14 @@
         };
 
         // Armazenamento
-        let priceData = {}; // { 'XAU/USD': [{open,high,low,close,volume}], 'NDX': [...] }
+        let priceData = {};
         let signalHistory = [];
-        let previousRawSignals = {}; // Para confirmação do candle seguinte
+        let previousRawSignals = {};
         let apiKey = localStorage.getItem('forex_api_key') || '';
+        let updateTimer = null;
 
         // ============================================================
-        // FUNÇÕES AUXILIARES DE CÁLCULO (igual Pine Script)
+        // FUNÇÕES AUXILIARES DE CÁLCULO
         // ============================================================
         function calcSMA(data, period) {
             if (data.length < period) return null;
@@ -629,8 +630,7 @@
 
         function calcRSI(closes, period) {
             if (closes.length < period + 1) return null;
-            let gains = 0,
-                losses = 0;
+            let gains = 0, losses = 0;
             for (let i = closes.length - period; i < closes.length; i++) {
                 const diff = closes[i] - closes[i - 1];
                 if (diff >= 0) gains += diff;
@@ -645,9 +645,7 @@
 
         function calcADX(highs, lows, closes, period) {
             if (highs.length < period + 1) return null;
-            let trSum = 0,
-                plusDMSum = 0,
-                minusDMSum = 0;
+            let trSum = 0, plusDMSum = 0, minusDMSum = 0;
             for (let i = highs.length - period; i < highs.length; i++) {
                 const tr = Math.max(
                     highs[i] - lows[i],
@@ -669,7 +667,7 @@
         }
 
         // ============================================================
-        // DETECÇÃO DE PADRÕES DE CANDLE (igual Pine Script)
+        // DETECÇÃO DE PADRÕES DE CANDLE
         // ============================================================
         function detectPatterns(candles) {
             if (candles.length < 2) return {};
@@ -678,7 +676,6 @@
             const previous = candles[candles.length - 2];
 
             const bodySize = Math.abs(current.close - current.open);
-            const candleSize = current.high - current.low;
             const upperWick = current.high - Math.max(current.close, current.open);
             const lowerWick = Math.min(current.close, current.open) - current.low;
 
@@ -687,33 +684,26 @@
 
             let patterns = {};
 
-            // Martelo (Hammer)
             if (lowerWick > bodySize * 2 && upperWick < bodySize * 0.5 && bodySize > 0) {
                 patterns.hammer = true;
             }
-
-            // Engolfo de Alta
             if (isBullish && previous.close < previous.open &&
                 current.close > previous.open && current.open < previous.close) {
                 patterns.bullishEngulfing = true;
             }
-
-            // Estrela Cadente
             if (upperWick > bodySize * 2 && lowerWick < bodySize * 0.5 && bodySize > 0) {
                 patterns.shootingStar = true;
             }
-
-            // Engolfo de Baixa
             if (isBearish && previous.close > previous.open &&
                 current.close < previous.open && current.open > previous.close) {
                 patterns.bearishEngulfing = true;
             }
 
-            return { patterns, isBullish, isBearish, bodySize, upperWick, lowerWick, candleSize };
+            return { patterns, isBullish, isBearish, bodySize, upperWick, lowerWick };
         }
 
         // ============================================================
-        // GERAÇÃO DE SINAL (igual lógica do Pine Script)
+        // GERAÇÃO DE SINAL
         // ============================================================
         function generateSignal(candles, symbol) {
             if (candles.length < CONFIG.emaLength + 5) return null;
@@ -723,7 +713,6 @@
             const lows = candles.map(c => c.low);
             const volumes = candles.map(c => c.volume);
 
-            // Cálculo dos indicadores
             const rsi = calcRSI(closes, CONFIG.rsiLength);
             const ema = calcEMA(closes, CONFIG.emaLength);
             const adxData = calcADX(highs, lows, closes, CONFIG.adxLength);
@@ -735,10 +724,8 @@
             const currentPrice = closes[closes.length - 1];
             const currentCandle = candles[candles.length - 1];
 
-            // Detecção de padrões
             const { patterns } = detectPatterns(candles);
 
-            // Filtros
             const trendUp = CONFIG.useEMAFilter ? currentPrice > ema : true;
             const trendDown = CONFIG.useEMAFilter ? currentPrice < ema : true;
             const adxOK = CONFIG.useADXFilter ? adxData.adx > CONFIG.adxMinLevel : true;
@@ -746,18 +733,15 @@
             const rsiBuyZone = rsi < CONFIG.rsiOversold;
             const rsiSellZone = rsi > CONFIG.rsiOverbought;
 
-            // Sinais brutos (raw)
             const buySignalRaw = (patterns.hammer || patterns.bullishEngulfing) &&
                 rsiBuyZone && trendUp && adxOK && volOK;
             const sellSignalRaw = (patterns.shootingStar || patterns.bearishEngulfing) &&
                 rsiSellZone && trendDown && adxOK && volOK;
 
-            // Confirmação do candle seguinte
             let buySignal = false;
             let sellSignal = false;
 
             if (CONFIG.useNextCandleConfirm) {
-                // Verifica se houve sinal raw no candle anterior
                 const prevKey = symbol;
                 if (previousRawSignals[prevKey]) {
                     if (previousRawSignals[prevKey].buyRaw && currentPrice > candles[candles.length - 2].high) {
@@ -767,14 +751,12 @@
                         sellSignal = true;
                     }
                 }
-                // Guarda sinal raw atual para próxima verificação
                 previousRawSignals[prevKey] = { buyRaw: buySignalRaw, sellRaw: sellSignalRaw, candle: currentCandle };
             } else {
                 buySignal = buySignalRaw;
                 sellSignal = sellSignalRaw;
             }
 
-            // Retornar indicadores sempre (para o painel)
             const indicators = {
                 rsi: Math.round(rsi * 10) / 10,
                 adx: Math.round(adxData.adx * 10) / 10,
@@ -793,10 +775,8 @@
                     direction: 'COMPRA',
                     type: 'buy',
                     entry: currentPrice,
-                    stopLoss: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 1.5) *
-                        100) / 100,
-                    takeProfit: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 2.5) *
-                        100) / 100,
+                    stopLoss: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 1.5) * 100) / 100,
+                    takeProfit: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 2.5) * 100) / 100,
                     pattern: patternName,
                     strength: adxData.adx > 30 ? 'FORTE' : adxData.adx > 20 ? 'MODERADO' : 'FRACO',
                 };
@@ -806,10 +786,8 @@
                     direction: 'VENDA',
                     type: 'sell',
                     entry: currentPrice,
-                    stopLoss: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 1.5) *
-                        100) / 100,
-                    takeProfit: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 2.5) *
-                        100) / 100,
+                    stopLoss: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 1.5) * 100) / 100,
+                    takeProfit: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 2.5) * 100) / 100,
                     pattern: patternName,
                     strength: adxData.adx > 30 ? 'FORTE' : adxData.adx > 20 ? 'MODERADO' : 'FRACO',
                 };
@@ -827,18 +805,15 @@
                 return null;
             }
 
-            // Mapeamento de símbolos para Twelve Data
             const symbolMap = {
                 'XAU/USD': 'XAU/USD',
-                'NDX': '^NDX', // NASDAQ 100
+                'NDX': 'NDX',
             };
 
             const apiSymbol = symbolMap[symbol] || symbol;
 
             try {
-                // Buscar candles diários para ter dados suficientes para EMA200
-                const url =
-                    `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(apiSymbol)}&interval=1day&outputsize=300&apikey=${apiKey}`;
+                const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(apiSymbol)}&interval=1day&outputsize=300&apikey=${apiKey}`;
 
                 const response = await fetch(url);
                 const data = await response.json();
@@ -853,7 +828,6 @@
                     return null;
                 }
 
-                // Converter para nosso formato (ordem cronológica)
                 const candles = data.values.reverse().map(item => ({
                     open: parseFloat(item.open),
                     high: parseFloat(item.high),
@@ -879,14 +853,12 @@
             const prefix = symbol === 'XAU/USD' ? 'xau' : 'ndx';
             const ind = data.indicators;
 
-            // Atualizar preço
             const priceEl = document.getElementById(`${prefix}-price`);
             if (priceEl) {
                 priceEl.textContent = `$${ind.price.toFixed(2)}`;
                 priceEl.style.color = ind.emaTrend.includes('Alta') ? '#00c853' : '#ff1744';
             }
 
-            // Atualizar indicadores
             const rsiEl = document.getElementById(`${prefix}-rsi`);
             const adxEl = document.getElementById(`${prefix}-adx`);
             const emaEl = document.getElementById(`${prefix}-ema`);
@@ -907,7 +879,6 @@
                 volEl.style.color = ind.volumeStatus.includes('OK') ? '#00c853' : '#8b949e';
             }
 
-            // Atualizar sinal
             const signalBox = document.getElementById(`${prefix}-signal`);
             if (signalBox && data.signal) {
                 const sig = data.signal;
@@ -937,10 +908,7 @@
                     </div>
                 `;
 
-                // Adicionar ao histórico
                 addToHistory(symbol, sig);
-
-                // Tocar alerta sonoro
                 playAlertSound();
             } else if (signalBox && !data.signal) {
                 signalBox.className = 'signal-box';
@@ -956,7 +924,6 @@
         }
 
         function addToHistory(symbol, signal) {
-            // Evitar duplicatas (mesmo sinal em menos de 5 min)
             const now = new Date();
             const lastSignal = signalHistory[0];
             if (lastSignal &&
@@ -986,3 +953,152 @@
 
             renderHistory();
         }
+
+        // ============================================================
+        // RENDERIZAR HISTÓRICO NA TABELA
+        // ============================================================
+        function renderHistory() {
+            const tbody = document.getElementById('history-body');
+            if (!tbody) return;
+
+            if (signalHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="empty-state">🔍 Nenhum sinal detectado ainda... Monitorando em tempo real.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = signalHistory.map(item => {
+                const timeStr = item.timestamp.toLocaleString('pt-BR', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
+                });
+                const badgeClass = item.type === 'buy' ? 'badge-buy' : 'badge-sell';
+                return `
+                    <tr>
+                        <td>${timeStr}</td>
+                        <td>${item.symbol}</td>
+                        <td><span class="badge ${badgeClass}">${item.direction}</span></td>
+                        <td>$${item.entry.toFixed(2)}</td>
+                        <td>$${item.stopLoss.toFixed(2)}</td>
+                        <td>$${item.takeProfit.toFixed(2)}</td>
+                        <td>${item.pattern}</td>
+                        <td>${item.strength}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // ============================================================
+        // ALERTA SONORO
+        // ============================================================
+        function playAlertSound() {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = ctx.createOscillator();
+                const gainNode = ctx.createGain();
+                oscillator.connect(gainNode);
+                gainNode.connect(ctx.destination);
+                oscillator.frequency.value = 880;
+                gainNode.gain.value = 0.15;
+                oscillator.start();
+                setTimeout(() => oscillator.stop(), 300);
+            } catch (e) {
+                console.warn('Não foi possível tocar o alerta sonoro:', e);
+            }
+        }
+
+        // ============================================================
+        // MODAL DE CONFIGURAÇÃO DA API KEY
+        // ============================================================
+        function openConfig() {
+            const modal = document.getElementById('configModal');
+            const input = document.getElementById('apiKeyInput');
+            if (input) input.value = apiKey || '';
+            if (modal) modal.classList.add('active');
+        }
+
+        function closeConfig() {
+            const modal = document.getElementById('configModal');
+            if (modal) modal.classList.remove('active');
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('apiKeyInput');
+            if (!input) return;
+            const value = input.value.trim();
+            if (!value) {
+                alert('Por favor, insira uma chave de API válida.');
+                return;
+            }
+            apiKey = value;
+            localStorage.setItem('forex_api_key', apiKey);
+            closeConfig();
+            updateStatus('Conectado! Buscando dados...');
+            refreshAllData();
+        }
+
+        // ============================================================
+        // STATUS / ÚLTIMA ATUALIZAÇÃO
+        // ============================================================
+        function updateStatus(msg) {
+            const el = document.getElementById('lastUpdate');
+            if (el) el.textContent = msg;
+        }
+
+        // ============================================================
+        // LOOP PRINCIPAL - BUSCAR E PROCESSAR DADOS
+        // ============================================================
+        async function refreshAllData() {
+            if (!apiKey) {
+                updateStatus('Configure sua API Key para começar');
+                return;
+            }
+
+            updateStatus('Atualizando...');
+
+            const symbols = ['XAU/USD', 'NDX'];
+
+            for (const symbol of symbols) {
+                const candles = await fetchMarketData(symbol);
+                if (candles && candles.length > 0) {
+                    priceData[symbol] = candles;
+                    const result = generateSignal(candles, symbol);
+                    if (result) {
+                        updateUI(symbol, result);
+                    }
+                }
+                // Pequena pausa entre chamadas para não estourar o rate limit
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
+
+            const now = new Date();
+            updateStatus(`Última atualização: ${now.toLocaleTimeString('pt-BR')}`);
+        }
+
+        function startAutoUpdate() {
+            if (updateTimer) clearInterval(updateTimer);
+            refreshAllData();
+            updateTimer = setInterval(refreshAllData, CONFIG.updateInterval);
+        }
+
+        // ============================================================
+        // INICIALIZAÇÃO
+        // ============================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            if (apiKey) {
+                startAutoUpdate();
+            } else {
+                updateStatus('Configure sua API Key para começar');
+                // Abre o modal automaticamente na primeira visita
+                setTimeout(openConfig, 800);
+            }
+        });
+
+        // Fechar modal ao clicar fora dele
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('configModal');
+            if (modal && e.target === modal) {
+                closeConfig();
+            }
+        });
+    </script>
+</body>
+</html>
