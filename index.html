@@ -446,7 +446,28 @@
                     </div>
                     <span id="xau-price" style="font-weight:700;font-size:1.1em;">--</span>
                 </div>
-                <div class="tradingview-widget" id="xau-chart"></div>
+                <div class="tradingview-widget" id="xau-chart">
+                    <div class="tradingview-widget-container" style="height:100%;width:100%">
+                        <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                        {
+                            "autosize": true,
+                            "symbol": "OANDA:XAUUSD",
+                            "interval": "15",
+                            "timezone": "Africa/Maputo",
+                            "theme": "dark",
+                            "style": "1",
+                            "locale": "pt",
+                            "enable_publishing": false,
+                            "hide_top_toolbar": false,
+                            "hide_legend": false,
+                            "save_image": false,
+                            "calendar": false,
+                            "support_host": "https://www.tradingview.com"
+                        }
+                        </script>
+                    </div>
+                </div>
                 <div class="signal-box" id="xau-signal">
                     <div class="signal-direction neutral">⏳ Aguardando sinal...</div>
                     <div class="signal-details">
@@ -492,7 +513,28 @@
                     </div>
                     <span id="ndx-price" style="font-weight:700;font-size:1.1em;">--</span>
                 </div>
-                <div class="tradingview-widget" id="ndx-chart"></div>
+                <div class="tradingview-widget" id="ndx-chart">
+                    <div class="tradingview-widget-container" style="height:100%;width:100%">
+                        <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+                        <script type="text/javascript" src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js" async>
+                        {
+                            "autosize": true,
+                            "symbol": "NASDAQ:NDX",
+                            "interval": "15",
+                            "timezone": "Africa/Maputo",
+                            "theme": "dark",
+                            "style": "1",
+                            "locale": "pt",
+                            "enable_publishing": false,
+                            "hide_top_toolbar": false,
+                            "hide_legend": false,
+                            "save_image": false,
+                            "calendar": false,
+                            "support_host": "https://www.tradingview.com"
+                        }
+                        </script>
+                    </div>
+                </div>
                 <div class="signal-box" id="ndx-signal">
                     <div class="signal-direction neutral">⏳ Aguardando sinal...</div>
                     <div class="signal-details">
