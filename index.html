@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sinais Forex - XAU/USD & NASDAQ</title>
+    <style>
+        :root {
+            --bg: #0d1117;
+            --card-bg: #161b22;
+            --border: #30363d;
+            --green: #00c853;
+            --red: #ff1744;
+            --text: #c9d1d9;
+            --text-secondary: #8b949e;
+            --gold: #ffd700;
+            --nasdaq: #00bcd4;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        header h1 {
+            font-size: 2em;
+            background: linear-gradient(135deg, var(--gold), var(--nasdaq));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+        }
+
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+                box-shadow: 0 0 8px #00ff00;
+            }
+            50% {
+                opacity: 0.4;
+                box-shadow: 0 0 2px #00ff00;
+            }
+        }
+
+        .last-update {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        @media (max-width: 900px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #58a6ff;
+            box-shadow: 0 4px 20px rgba(88, 166, 255, 0.1);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .card-title {
+            font-size: 1.3em;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title .icon {
+            font-size: 1.5em;
+        }
+
+        .gold-title {
+            color: var(--gold);
+        }
+        .nasdaq-title {
+            color: var(--nasdaq);
+        }
+
+        .tradingview-widget {
+            width: 100%;
+            height: 350px;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 15px;
+            background: #000;
+        }
+
+        .signal-box {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 18px;
+            margin-top: 12px;
+            border: 2px solid var(--border);
+            transition: all 0.3s ease;
+        }
+
+        .signal-box.buy {
+            border-color: #00c85340;
+            background: #00c8530a;
+        }
+        .signal-box.sell {
+            border-color: #ff174440;
+            background: #ff17440a;
+        }
+
+        .signal-direction {
+            font-size: 1.4em;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .signal-direction.buy {
+            color: var(--green);
+        }
+        .signal-direction.sell {
+            color: var(--red);
+        }
+
+        .signal-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            font-size: 0.85em;
+        }
+
+        @media (max-width: 500px) {
+            .signal-details {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .signal-detail-item {
+            background: #ffffff05;
+            padding: 10px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .signal-detail-item .label {
+            color: var(--text-secondary);
+            font-size: 0.75em;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .signal-detail-item .value {
+            font-weight: 700;
+            font-size: 1.1em;
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .indicators-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        .indicator-item {
+            text-align: center;
+            padding: 8px;
+            background: #ffffff05;
+            border-radius: 6px;
+            font-size: 0.8em;
+        }
+
+        .indicator-item .ind-label {
+            color: var(--text-secondary);
+            font-size: 0.7em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .indicator-item .ind-value {
+            font-weight: 700;
+            margin-top: 3px;
+        }
+
+        .history-section {
+            margin-top: 25px;
+        }
+
+        .history-section h2 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: var(--text-secondary);
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+        }
+
+        .history-table th {
+            background: var(--card-bg);
+            padding: 12px 10px;
+            text-align: left;
+            border-bottom: 2px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 0.75em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .history-table td {
+            padding: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .history-table tr:hover td {
+            background: #ffffff03;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8em;
+        }
+        .badge-buy {
+            background: #00c85320;
+            color: var(--green);
+        }
+        .badge-sell {
+            background: #ff174420;
+            color: var(--red);
+        }
+        .badge-neutral {
+            background: #8b949e20;
+            color: var(--text-secondary);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px 0 10px;
+            color: var(--text-secondary);
+            font-size: 0.8em;
+            border-top: 1px solid var(--border);
+            margin-top: 30px;
+        }
+
+        .alert-badge {
+            animation: blink 1s infinite;
+            display: inline-block;
+            margin-left: 5px;
+        }
+
+        @keyframes blink {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        .config-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.9em;
+            z-index: 100;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s;
+        }
+
+        .config-btn:hover {
+            border-color: #58a6ff;
+            background: #1a2332;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-content h3 {
+            margin-bottom: 20px;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: #0d1117;
+            color: var(--text);
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+
+        .modal-content button {
+            width: 100%;
+            padding: 14px;
+            border-radius: 8px;
+            border: none;
+            background: #238636;
+            color: white;
+            font-size: 1em;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .modal-content button:hover {
+            background: #2ea043;
+        }
+
+        .modal-content .close-btn {
+            background: #30363d;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>📊 Sinais XAU/USD & NASDAQ 100</h1>
+            <p>Estratégia: Padrões de Candle + RSI + EMA200 + ADX + Volume</p>
+            <div class="status-bar">
+                <div class="status-dot" id="statusDot"></div>
+                <span style="font-size:0.85em;">Ao Vivo</span>
+                <span class="last-update" id="lastUpdate">Carregando...</span>
+            </div>
+        </header>
+
+        <div class="charts-grid">
+            <!-- XAU/USD -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title gold-title">
+                        <span class="icon">🥇</span> XAU/USD (Ouro)
+                    </div>
+                    <span id="xau-price" style="font-weight:700;font-size:1.1em;">--</span>
+                </div>
+                <div class="tradingview-widget" id="xau-chart"></div>
+                <div class="signal-box" id="xau-signal">
+                    <div class="signal-direction neutral">⏳ Aguardando sinal...</div>
+                    <div class="signal-details">
+                        <div class="signal-detail-item">
+                            <div class="label">Entrada</div>
+                            <div class="value">--</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Stop Loss</div>
+                            <div class="value">--</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Take Profit</div>
+                            <div class="value">--</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="indicators-grid" id="xau-indicators">
+                    <div class="indicator-item">
+                        <div class="ind-label">RSI (14)</div>
+                        <div class="ind-value" id="xau-rsi">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">ADX (14)</div>
+                        <div class="ind-value" id="xau-adx">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">EMA 200</div>
+                        <div class="ind-value" id="xau-ema">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">Volume</div>
+                        <div class="ind-value" id="xau-vol">--</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- NASDAQ 100 -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title nasdaq-title">
+                        <span class="icon">📈</span> NASDAQ 100
+                    </div>
+                    <span id="ndx-price" style="font-weight:700;font-size:1.1em;">--</span>
+                </div>
+                <div class="tradingview-widget" id="ndx-chart"></div>
+                <div class="signal-box" id="ndx-signal">
+                    <div class="signal-direction neutral">⏳ Aguardando sinal...</div>
+                    <div class="signal-details">
+                        <div class="signal-detail-item">
+                            <div class="label">Entrada</div>
+                            <div class="value">--</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Stop Loss</div>
+                            <div class="value">--</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Take Profit</div>
+                            <div class="value">--</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="indicators-grid" id="ndx-indicators">
+                    <div class="indicator-item">
+                        <div class="ind-label">RSI (14)</div>
+                        <div class="ind-value" id="ndx-rsi">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">ADX (14)</div>
+                        <div class="ind-value" id="ndx-adx">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">EMA 200</div>
+                        <div class="ind-value" id="ndx-ema">--</div>
+                    </div>
+                    <div class="indicator-item">
+                        <div class="ind-label">Volume</div>
+                        <div class="ind-value" id="ndx-vol">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Histórico -->
+        <div class="history-section">
+            <h2>📜 Histórico de Sinais</h2>
+            <div style="overflow-x:auto;">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Ativo</th>
+                            <th>Sinal</th>
+                            <th>Entrada</th>
+                            <th>SL</th>
+                            <th>TP</th>
+                            <th>Padrão</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <tr>
+                            <td colspan="8" class="empty-state">🔍 Nenhum sinal detectado ainda... Monitorando em tempo real.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <footer>
+            <p>⚠️ Este site é para fins informativos. Não é recomendação de investimento.</p>
+            <p>Sinais baseados em análise técnica automatizada. Opere com responsabilidade.</p>
+        </footer>
+    </div>
+
+    <button class="config-btn" onclick="openConfig()">⚙️ Configurar API Key</button>
+
+    <div class="modal" id="configModal">
+        <div class="modal-content">
+            <h3>⚙️ Configuração da API</h3>
+            <p style="color:var(--text-secondary);font-size:0.85em;margin-bottom:15px;">
+                Obtenha sua chave gratuita em:
+                <a href="https://twelvedata.com" target="_blank" style="color:#58a6ff;">twelvedata.com</a>
+                (800 requisições/dia grátis)
+            </p>
+            <input type="text" id="apiKeyInput" placeholder="Cole sua API Key aqui..." />
+            <button onclick="saveApiKey()">💾 Salvar e Conectar</button>
+            <button class="close-btn" onclick="closeConfig()">❌ Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        // CONFIGURAÇÕES DA ESTRATÉGIA (igual ao Pine Script)
+        // ============================================================
+        const CONFIG = {
+            rsiLength: 14,
+            rsiOverbought: 68,
+            rsiOversold: 33,
+            emaLength: 200,
+            useEMAFilter: true,
+            adxLength: 14,
+            adxSmoothing: 14,
+            adxMinLevel: 20,
+            useADXFilter: true,
+            volMaLength: 20,
+            volMultiplier: 1.2,
+            useVolumeFilter: true,
+            useNextCandleConfirm: true,
+            updateInterval: 60000, // 1 minuto
+            maxHistoryItems: 50,
+        };
+
+        // Armazenamento
+        let priceData = {}; // { 'XAU/USD': [{open,high,low,close,volume}], 'NDX': [...] }
+        let signalHistory = [];
+        let previousRawSignals = {}; // Para confirmação do candle seguinte
+        let apiKey = localStorage.getItem('forex_api_key') || '';
+
+        // ============================================================
+        // FUNÇÕES AUXILIARES DE CÁLCULO (igual Pine Script)
+        // ============================================================
+        function calcSMA(data, period) {
+            if (data.length < period) return null;
+            let sum = 0;
+            for (let i = data.length - period; i < data.length; i++) sum += data[i];
+            return sum / period;
+        }
+
+        function calcEMA(data, period) {
+            if (data.length < 2) return data.length > 0 ? data[data.length - 1] : null;
+            const multiplier = 2 / (period + 1);
+            let ema = data[0];
+            for (let i = 1; i < data.length; i++) {
+                ema = (data[i] - ema) * multiplier + ema;
+            }
+            return ema;
+        }
+
+        function calcRSI(closes, period) {
+            if (closes.length < period + 1) return null;
+            let gains = 0,
+                losses = 0;
+            for (let i = closes.length - period; i < closes.length; i++) {
+                const diff = closes[i] - closes[i - 1];
+                if (diff >= 0) gains += diff;
+                else losses += Math.abs(diff);
+            }
+            const avgGain = gains / period;
+            const avgLoss = losses / period;
+            if (avgLoss === 0) return 100;
+            const rs = avgGain / avgLoss;
+            return 100 - 100 / (1 + rs);
+        }
+
+        function calcADX(highs, lows, closes, period) {
+            if (highs.length < period + 1) return null;
+            let trSum = 0,
+                plusDMSum = 0,
+                minusDMSum = 0;
+            for (let i = highs.length - period; i < highs.length; i++) {
+                const tr = Math.max(
+                    highs[i] - lows[i],
+                    Math.abs(highs[i] - closes[i - 1]),
+                    Math.abs(lows[i] - closes[i - 1])
+                );
+                const plusDM = highs[i] - highs[i - 1] > lows[i - 1] - lows[i] ?
+                    Math.max(highs[i] - highs[i - 1], 0) : 0;
+                const minusDM = lows[i - 1] - lows[i] > highs[i] - highs[i - 1] ?
+                    Math.max(lows[i - 1] - lows[i], 0) : 0;
+                trSum += tr;
+                plusDMSum += plusDM;
+                minusDMSum += minusDM;
+            }
+            const plusDI = (plusDMSum / trSum) * 100;
+            const minusDI = (minusDMSum / trSum) * 100;
+            const dx = Math.abs(plusDI - minusDI) / (plusDI + minusDI) * 100;
+            return { adx: dx, plusDI, minusDI };
+        }
+
+        // ============================================================
+        // DETECÇÃO DE PADRÕES DE CANDLE (igual Pine Script)
+        // ============================================================
+        function detectPatterns(candles) {
+            if (candles.length < 2) return {};
+
+            const current = candles[candles.length - 1];
+            const previous = candles[candles.length - 2];
+
+            const bodySize = Math.abs(current.close - current.open);
+            const candleSize = current.high - current.low;
+            const upperWick = current.high - Math.max(current.close, current.open);
+            const lowerWick = Math.min(current.close, current.open) - current.low;
+
+            const isBullish = current.close > current.open;
+            const isBearish = current.close < current.open;
+
+            let patterns = {};
+
+            // Martelo (Hammer)
+            if (lowerWick > bodySize * 2 && upperWick < bodySize * 0.5 && bodySize > 0) {
+                patterns.hammer = true;
+            }
+
+            // Engolfo de Alta
+            if (isBullish && previous.close < previous.open &&
+                current.close > previous.open && current.open < previous.close) {
+                patterns.bullishEngulfing = true;
+            }
+
+            // Estrela Cadente
+            if (upperWick > bodySize * 2 && lowerWick < bodySize * 0.5 && bodySize > 0) {
+                patterns.shootingStar = true;
+            }
+
+            // Engolfo de Baixa
+            if (isBearish && previous.close > previous.open &&
+                current.close < previous.open && current.open > previous.close) {
+                patterns.bearishEngulfing = true;
+            }
+
+            return { patterns, isBullish, isBearish, bodySize, upperWick, lowerWick, candleSize };
+        }
+
+        // ============================================================
+        // GERAÇÃO DE SINAL (igual lógica do Pine Script)
+        // ============================================================
+        function generateSignal(candles, symbol) {
+            if (candles.length < CONFIG.emaLength + 5) return null;
+
+            const closes = candles.map(c => c.close);
+            const highs = candles.map(c => c.high);
+            const lows = candles.map(c => c.low);
+            const volumes = candles.map(c => c.volume);
+
+            // Cálculo dos indicadores
+            const rsi = calcRSI(closes, CONFIG.rsiLength);
+            const ema = calcEMA(closes, CONFIG.emaLength);
+            const adxData = calcADX(highs, lows, closes, CONFIG.adxLength);
+            const volMA = calcSMA(volumes, CONFIG.volMaLength);
+
+            if (rsi === null || ema === null || adxData === null || volMA === null) return null;
+
+            const currentVolume = volumes[volumes.length - 1];
+            const currentPrice = closes[closes.length - 1];
+            const currentCandle = candles[candles.length - 1];
+
+            // Detecção de padrões
+            const { patterns } = detectPatterns(candles);
+
+            // Filtros
+            const trendUp = CONFIG.useEMAFilter ? currentPrice > ema : true;
+            const trendDown = CONFIG.useEMAFilter ? currentPrice < ema : true;
+            const adxOK = CONFIG.useADXFilter ? adxData.adx > CONFIG.adxMinLevel : true;
+            const volOK = CONFIG.useVolumeFilter ? currentVolume > volMA * CONFIG.volMultiplier : true;
+            const rsiBuyZone = rsi < CONFIG.rsiOversold;
+            const rsiSellZone = rsi > CONFIG.rsiOverbought;
+
+            // Sinais brutos (raw)
+            const buySignalRaw = (patterns.hammer || patterns.bullishEngulfing) &&
+                rsiBuyZone && trendUp && adxOK && volOK;
+            const sellSignalRaw = (patterns.shootingStar || patterns.bearishEngulfing) &&
+                rsiSellZone && trendDown && adxOK && volOK;
+
+            // Confirmação do candle seguinte
+            let buySignal = false;
+            let sellSignal = false;
+
+            if (CONFIG.useNextCandleConfirm) {
+                // Verifica se houve sinal raw no candle anterior
+                const prevKey = symbol;
+                if (previousRawSignals[prevKey]) {
+                    if (previousRawSignals[prevKey].buyRaw && currentPrice > candles[candles.length - 2].high) {
+                        buySignal = true;
+                    }
+                    if (previousRawSignals[prevKey].sellRaw && currentPrice < candles[candles.length - 2].low) {
+                        sellSignal = true;
+                    }
+                }
+                // Guarda sinal raw atual para próxima verificação
+                previousRawSignals[prevKey] = { buyRaw: buySignalRaw, sellRaw: sellSignalRaw, candle: currentCandle };
+            } else {
+                buySignal = buySignalRaw;
+                sellSignal = sellSignalRaw;
+            }
+
+            // Retornar indicadores sempre (para o painel)
+            const indicators = {
+                rsi: Math.round(rsi * 10) / 10,
+                adx: Math.round(adxData.adx * 10) / 10,
+                ema: Math.round(ema * 10) / 10,
+                emaTrend: currentPrice > ema ? 'Alta 📈' : 'Baixa 📉',
+                volumeStatus: volOK ? 'OK ✅' : 'Baixo ❌',
+                price: currentPrice,
+            };
+
+            let signal = null;
+            let patternName = '';
+
+            if (buySignal) {
+                patternName = patterns.hammer ? 'Martelo 🔨' : 'Engolfo Alta 📦';
+                signal = {
+                    direction: 'COMPRA',
+                    type: 'buy',
+                    entry: currentPrice,
+                    stopLoss: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 1.5) *
+                        100) / 100,
+                    takeProfit: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 2.5) *
+                        100) / 100,
+                    pattern: patternName,
+                    strength: adxData.adx > 30 ? 'FORTE' : adxData.adx > 20 ? 'MODERADO' : 'FRACO',
+                };
+            } else if (sellSignal) {
+                patternName = patterns.shootingStar ? 'Estrela Cadente 🌠' : 'Engolfo Baixa 📦';
+                signal = {
+                    direction: 'VENDA',
+                    type: 'sell',
+                    entry: currentPrice,
+                    stopLoss: Math.round((currentPrice + (currentCandle.high - currentCandle.low) * 1.5) *
+                        100) / 100,
+                    takeProfit: Math.round((currentPrice - (currentCandle.high - currentCandle.low) * 2.5) *
+                        100) / 100,
+                    pattern: patternName,
+                    strength: adxData.adx > 30 ? 'FORTE' : adxData.adx > 20 ? 'MODERADO' : 'FRACO',
+                };
+            }
+
+            return { signal, indicators, patterns };
+        }
+
+        // ============================================================
+        // API - BUSCAR DADOS DE MERCADO
+        // ============================================================
+        async function fetchMarketData(symbol) {
+            if (!apiKey) {
+                console.warn('API Key não configurada');
+                return null;
+            }
+
+            // Mapeamento de símbolos para Twelve Data
+            const symbolMap = {
+                'XAU/USD': 'XAU/USD',
+                'NDX': '^NDX', // NASDAQ 100
+            };
+
+            const apiSymbol = symbolMap[symbol] || symbol;
+
+            try {
+                // Buscar candles diários para ter dados suficientes para EMA200
+                const url =
+                    `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(apiSymbol)}&interval=1day&outputsize=300&apikey=${apiKey}`;
+
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.status === 'error') {
+                    console.error(`Erro API (${symbol}):`, data.message);
+                    return null;
+                }
+
+                if (!data.values || data.values.length === 0) {
+                    console.warn(`Sem dados para ${symbol}`);
+                    return null;
+                }
+
+                // Converter para nosso formato (ordem cronológica)
+                const candles = data.values.reverse().map(item => ({
+                    open: parseFloat(item.open),
+                    high: parseFloat(item.high),
+                    low: parseFloat(item.low),
+                    close: parseFloat(item.close),
+                    volume: parseFloat(item.volume || 0),
+                    datetime: item.datetime,
+                }));
+
+                return candles;
+            } catch (error) {
+                console.error(`Erro ao buscar ${symbol}:`, error);
+                return null;
+            }
+        }
+
+        // ============================================================
+        // ATUALIZAR INTERFACE
+        // ============================================================
+        function updateUI(symbol, data) {
+            if (!data || !data.indicators) return;
+
+            const prefix = symbol === 'XAU/USD' ? 'xau' : 'ndx';
+            const ind = data.indicators;
+
+            // Atualizar preço
+            const priceEl = document.getElementById(`${prefix}-price`);
+            if (priceEl) {
+                priceEl.textContent = `$${ind.price.toFixed(2)}`;
+                priceEl.style.color = ind.emaTrend.includes('Alta') ? '#00c853' : '#ff1744';
+            }
+
+            // Atualizar indicadores
+            const rsiEl = document.getElementById(`${prefix}-rsi`);
+            const adxEl = document.getElementById(`${prefix}-adx`);
+            const emaEl = document.getElementById(`${prefix}-ema`);
+            const volEl = document.getElementById(`${prefix}-vol`);
+
+            if (rsiEl) {
+                rsiEl.textContent = ind.rsi;
+                rsiEl.style.color = ind.rsi < CONFIG.rsiOversold ? '#00c853' :
+                    ind.rsi > CONFIG.rsiOverbought ? '#ff1744' : '#c9d1d9';
+            }
+            if (adxEl) adxEl.textContent = ind.adx;
+            if (emaEl) {
+                emaEl.textContent = ind.emaTrend;
+                emaEl.style.color = ind.emaTrend.includes('Alta') ? '#00c853' : '#ff1744';
+            }
+            if (volEl) {
+                volEl.textContent = ind.volumeStatus;
+                volEl.style.color = ind.volumeStatus.includes('OK') ? '#00c853' : '#8b949e';
+            }
+
+            // Atualizar sinal
+            const signalBox = document.getElementById(`${prefix}-signal`);
+            if (signalBox && data.signal) {
+                const sig = data.signal;
+                signalBox.className = `signal-box ${sig.type}`;
+                signalBox.innerHTML = `
+                    <div class="signal-direction ${sig.type}">
+                        ${sig.type === 'buy' ? '🟢 COMPRA' : '🔴 VENDA'}
+                        <span class="alert-badge">🔔</span>
+                        <span style="font-size:0.7em;color:#8b949e;">[${sig.strength}]</span>
+                    </div>
+                    <div style="font-size:0.8em;color:var(--text-secondary);margin-bottom:10px;">
+                        Padrão: ${sig.pattern}
+                    </div>
+                    <div class="signal-details">
+                        <div class="signal-detail-item">
+                            <div class="label">Entrada</div>
+                            <div class="value">$${sig.entry.toFixed(2)}</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Stop Loss</div>
+                            <div class="value" style="color:#ff1744;">$${sig.stopLoss.toFixed(2)}</div>
+                        </div>
+                        <div class="signal-detail-item">
+                            <div class="label">Take Profit</div>
+                            <div class="value" style="color:#00c853;">$${sig.takeProfit.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+
+                // Adicionar ao histórico
+                addToHistory(symbol, sig);
+
+                // Tocar alerta sonoro
+                playAlertSound();
+            } else if (signalBox && !data.signal) {
+                signalBox.className = 'signal-box';
+                signalBox.innerHTML = `
+                    <div class="signal-direction neutral">⏳ Aguardando sinal...</div>
+                    <div class="signal-details">
+                        <div class="signal-detail-item"><div class="label">Entrada</div><div class="value">--</div></div>
+                        <div class="signal-detail-item"><div class="label">Stop Loss</div><div class="value">--</div></div>
+                        <div class="signal-detail-item"><div class="label">Take Profit</div><div class="value">--</div></div>
+                    </div>
+                `;
+            }
+        }
+
+        function addToHistory(symbol, signal) {
+            // Evitar duplicatas (mesmo sinal em menos de 5 min)
+            const now = new Date();
+            const lastSignal = signalHistory[0];
+            if (lastSignal &&
+                lastSignal.symbol === symbol &&
+                lastSignal.direction === signal.direction &&
+                (now - lastSignal.timestamp) < 300000) {
+                return;
+            }
+
+            const entry = {
+                symbol,
+                direction: signal.direction,
+                type: signal.type,
+                entry: signal.entry,
+                stopLoss: signal.stopLoss,
+                takeProfit: signal.takeProfit,
+                pattern: signal.pattern,
+                strength: signal.strength,
+                timestamp: now,
+                id: Date.now(),
+            };
+
+            signalHistory.unshift(entry);
+            if (signalHistory.length > CONFIG.maxHistoryItems) {
+                signalHistory.pop();
+            }
+
+            renderHistory();
+        }
