@@ -422,6 +422,85 @@
             background: #30363d;
             margin-top: 10px;
         }
+
+        .smc-panel {
+            background: #0d1117;
+            border-radius: 10px;
+            padding: 16px;
+            margin-top: 12px;
+            border: 2px solid var(--border);
+        }
+
+        .smc-panel h4 {
+            font-size: 0.9em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+        }
+
+        .smc-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85em;
+        }
+
+        .smc-row:last-child {
+            border-bottom: none;
+        }
+
+        .smc-label {
+            color: var(--text-secondary);
+        }
+
+        .smc-value {
+            font-weight: 700;
+        }
+
+        .smc-bullish {
+            color: var(--green);
+        }
+
+        .smc-bearish {
+            color: var(--red);
+        }
+
+        .smc-neutral {
+            color: var(--text-secondary);
+        }
+
+        .smc-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+
+        .smc-tag-bos-bull {
+            background: #00c85320;
+            color: var(--green);
+        }
+
+        .smc-tag-bos-bear {
+            background: #ff174420;
+            color: var(--red);
+        }
+
+        .smc-tag-choch {
+            background: #ffd70020;
+            color: var(--gold);
+        }
+
+        .smc-zone-list {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -503,6 +582,33 @@
                         <div class="ind-value" id="xau-vol">--</div>
                     </div>
                 </div>
+                <div class="smc-panel" id="xau-smc">
+                    <h4>🧭 Análise SMC</h4>
+                    <div class="smc-row">
+                        <span class="smc-label">Estrutura</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-structure">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">Último Evento</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-event">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">Order Block</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-ob">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">FVG (Imbalance)</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-fvg">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">BSL (Liquidez Alta)</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-bsl">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">SSL (Liquidez Baixa)</span>
+                        <span class="smc-value smc-neutral" id="xau-smc-ssl">--</span>
+                    </div>
+                </div>
             </div>
 
             <!-- NASDAQ 100 -->
@@ -568,6 +674,33 @@
                     <div class="indicator-item">
                         <div class="ind-label">Volume</div>
                         <div class="ind-value" id="ndx-vol">--</div>
+                    </div>
+                </div>
+                <div class="smc-panel" id="ndx-smc">
+                    <h4>🧭 Análise SMC</h4>
+                    <div class="smc-row">
+                        <span class="smc-label">Estrutura</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-structure">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">Último Evento</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-event">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">Order Block</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-ob">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">FVG (Imbalance)</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-fvg">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">BSL (Liquidez Alta)</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-bsl">--</span>
+                    </div>
+                    <div class="smc-row">
+                        <span class="smc-label">SSL (Liquidez Baixa)</span>
+                        <span class="smc-value smc-neutral" id="ndx-smc-ssl">--</span>
                     </div>
                 </div>
             </div>
@@ -745,6 +878,220 @@
         }
 
         // ============================================================
+        // ANÁLISE SMC (Smart Money Concepts)
+        // Swing Points, BOS/CHoCH, Order Blocks, FVG, Liquidez
+        // ============================================================
+
+        // Identifica topos e fundos (swing highs/lows) usando fractal de 5 candles
+        function findSwingPoints(candles, lookback = 2) {
+            const swings = [];
+            for (let i = lookback; i < candles.length - lookback; i++) {
+                const c = candles[i];
+                let isSwingHigh = true;
+                let isSwingLow = true;
+
+                for (let j = i - lookback; j <= i + lookback; j++) {
+                    if (j === i) continue;
+                    if (candles[j].high >= c.high) isSwingHigh = false;
+                    if (candles[j].low <= c.low) isSwingLow = false;
+                }
+
+                if (isSwingHigh) swings.push({ index: i, type: 'high', price: c.high, datetime: c.datetime });
+                if (isSwingLow) swings.push({ index: i, type: 'low', price: c.low, datetime: c.datetime });
+            }
+            return swings;
+        }
+
+        // Detecta estrutura de mercado: BOS (continuação) e CHoCH (reversão)
+        function detectMarketStructure(candles, swings) {
+            const highs = swings.filter(s => s.type === 'high');
+            const lows = swings.filter(s => s.type === 'low');
+
+            if (highs.length < 2 || lows.length < 2) {
+                return { structure: null, lastEvent: null, trend: null };
+            }
+
+            const lastHigh = highs[highs.length - 1];
+            const prevHigh = highs[highs.length - 2];
+            const lastLow = lows[lows.length - 1];
+            const prevLow = lows[lows.length - 2];
+
+            const higherHigh = lastHigh.price > prevHigh.price;
+            const higherLow = lastLow.price > prevLow.price;
+            const lowerHigh = lastHigh.price < prevHigh.price;
+            const lowerLow = lastLow.price < prevLow.price;
+
+            let trend = null;
+            if (higherHigh && higherLow) trend = 'bullish';
+            else if (lowerHigh && lowerLow) trend = 'bearish';
+            else trend = 'ranging';
+
+            // Verifica o candle atual contra a última estrutura para detectar BOS/CHoCH
+            const currentPrice = candles[candles.length - 1].close;
+            let lastEvent = null;
+
+            // Ordena todos os swings por índice para saber qual foi o mais recente antes do candle atual
+            const allSwingsSorted = [...swings].sort((a, b) => a.index - b.index);
+            const recentSwingHighs = allSwingsSorted.filter(s => s.type === 'high').slice(-3);
+            const recentSwingLows = allSwingsSorted.filter(s => s.type === 'low').slice(-3);
+
+            if (recentSwingHighs.length > 0) {
+                const refHigh = recentSwingHighs[recentSwingHighs.length - 1];
+                if (currentPrice > refHigh.price) {
+                    lastEvent = trend === 'bearish' ? 
+                        { type: 'CHoCH', direction: 'bullish', level: refHigh.price } :
+                        { type: 'BOS', direction: 'bullish', level: refHigh.price };
+                }
+            }
+            if (recentSwingLows.length > 0) {
+                const refLow = recentSwingLows[recentSwingLows.length - 1];
+                if (currentPrice < refLow.price) {
+                    lastEvent = trend === 'bullish' ? 
+                        { type: 'CHoCH', direction: 'bearish', level: refLow.price } :
+                        { type: 'BOS', direction: 'bearish', level: refLow.price };
+                }
+            }
+
+            return { structure: trend, lastEvent, lastHigh, lastLow, prevHigh, prevLow };
+        }
+
+        // Detecta Order Blocks: último candle oposto antes de um movimento impulsivo forte
+        function detectOrderBlocks(candles, lookAhead = 3, impulseMultiplier = 1.8) {
+            const orderBlocks = [];
+            const avgRange = candles.slice(-50).reduce((sum, c) => sum + (c.high - c.low), 0) / Math.min(50, candles.length);
+
+            for (let i = candles.length - 30; i < candles.length - lookAhead; i++) {
+                if (i < 1) continue;
+                const candle = candles[i];
+                const isBearishCandle = candle.close < candle.open;
+                const isBullishCandle = candle.close > candle.open;
+
+                // Verifica se depois deste candle houve um movimento impulsivo na direção oposta
+                const nextCandles = candles.slice(i + 1, i + 1 + lookAhead);
+                if (nextCandles.length < lookAhead) continue;
+
+                const moveRange = Math.max(...nextCandles.map(c => c.high)) - Math.min(...nextCandles.map(c => c.low));
+                const isImpulsive = moveRange > avgRange * impulseMultiplier;
+
+                if (isBearishCandle && isImpulsive) {
+                    const nextMove = nextCandles[nextCandles.length - 1].close - candle.close;
+                    if (nextMove > 0) {
+                        orderBlocks.push({
+                            type: 'bullish',
+                            high: candle.high,
+                            low: candle.low,
+                            index: i,
+                            datetime: candle.datetime,
+                        });
+                    }
+                }
+                if (isBullishCandle && isImpulsive) {
+                    const nextMove = nextCandles[nextCandles.length - 1].close - candle.close;
+                    if (nextMove < 0) {
+                        orderBlocks.push({
+                            type: 'bearish',
+                            high: candle.high,
+                            low: candle.low,
+                            index: i,
+                            datetime: candle.datetime,
+                        });
+                    }
+                }
+            }
+
+            return orderBlocks.slice(-3); // últimos 3 OBs relevantes
+        }
+
+        // Detecta FVG (Fair Value Gap / Imbalance): gap entre candle 1 e candle 3
+        function detectFVG(candles, maxAge = 30) {
+            const fvgs = [];
+            const startIdx = Math.max(2, candles.length - maxAge);
+
+            for (let i = startIdx; i < candles.length; i++) {
+                const c1 = candles[i - 2];
+                const c3 = candles[i];
+
+                // FVG de alta: mínima do candle 3 acima da máxima do candle 1
+                if (c3.low > c1.high) {
+                    fvgs.push({
+                        type: 'bullish',
+                        top: c3.low,
+                        bottom: c1.high,
+                        index: i,
+                        datetime: candles[i - 1].datetime,
+                    });
+                }
+                // FVG de baixa: máxima do candle 3 abaixo da mínima do candle 1
+                if (c3.high < c1.low) {
+                    fvgs.push({
+                        type: 'bearish',
+                        top: c1.low,
+                        bottom: c3.high,
+                        index: i,
+                        datetime: candles[i - 1].datetime,
+                    });
+                }
+            }
+
+            // Filtra FVGs ainda não "preenchidos" pelo preço atual
+            const currentPrice = candles[candles.length - 1].close;
+            const openFvgs = fvgs.filter(f => {
+                if (f.type === 'bullish') return currentPrice > f.bottom;
+                return currentPrice < f.top;
+            });
+
+            return openFvgs.slice(-3);
+        }
+
+        // Detecta zonas de liquidez: BSL (acima de topos recentes) e SSL (abaixo de fundos recentes)
+        function detectLiquidity(candles, swings, tolerance = 0.001) {
+            const highs = swings.filter(s => s.type === 'high').slice(-5);
+            const lows = swings.filter(s => s.type === 'low').slice(-5);
+
+            // Agrupa topos/fundos próximos (equal highs/lows) como zonas de liquidez mais fortes
+            function groupLevels(points) {
+                const groups = [];
+                points.forEach(p => {
+                    const existing = groups.find(g => Math.abs(g.price - p.price) / p.price < tolerance);
+                    if (existing) {
+                        existing.count++;
+                        existing.price = (existing.price + p.price) / 2;
+                    } else {
+                        groups.push({ price: p.price, count: 1 });
+                    }
+                });
+                return groups.sort((a, b) => b.count - a.count);
+            }
+
+            const bsl = groupLevels(highs);
+            const ssl = groupLevels(lows);
+
+            return {
+                bsl: bsl.length > 0 ? bsl[0] : null,
+                ssl: ssl.length > 0 ? ssl[0] : null,
+            };
+        }
+
+        // Função principal que agrega toda a análise SMC
+        function analyzeSMC(candles) {
+            if (candles.length < 30) return null;
+
+            const swings = findSwingPoints(candles, 2);
+            const structureData = detectMarketStructure(candles, swings);
+            const orderBlocks = detectOrderBlocks(candles);
+            const fvgs = detectFVG(candles);
+            const liquidity = detectLiquidity(candles, swings);
+
+            return {
+                structure: structureData.structure,
+                lastEvent: structureData.lastEvent,
+                orderBlocks,
+                fvgs,
+                liquidity,
+            };
+        }
+
+        // ============================================================
         // GERAÇÃO DE SINAL
         // ============================================================
         function generateSignal(candles, symbol) {
@@ -835,7 +1182,9 @@
                 };
             }
 
-            return { signal, indicators, patterns };
+            const smc = analyzeSMC(candles);
+
+            return { signal, indicators, patterns, smc };
         }
 
         // ============================================================
@@ -921,6 +1270,10 @@
                 volEl.style.color = ind.volumeStatus.includes('OK') ? '#00c853' : '#8b949e';
             }
 
+            if (data.smc) {
+                updateSMCPanel(prefix, data.smc, ind.price);
+            }
+
             const signalBox = document.getElementById(`${prefix}-signal`);
             if (signalBox && data.signal) {
                 const sig = data.signal;
@@ -963,6 +1316,93 @@
                         <div class="signal-detail-item"><div class="label">Take Profit</div><div class="value">--</div></div>
                     </div>
                 `;
+            }
+        }
+
+        function updateSMCPanel(prefix, smc, currentPrice) {
+            // Estrutura de mercado
+            const structureEl = document.getElementById(`${prefix}-smc-structure`);
+            if (structureEl) {
+                if (smc.structure === 'bullish') {
+                    structureEl.textContent = 'Alta 📈';
+                    structureEl.className = 'smc-value smc-bullish';
+                } else if (smc.structure === 'bearish') {
+                    structureEl.textContent = 'Baixa 📉';
+                    structureEl.className = 'smc-value smc-bearish';
+                } else if (smc.structure === 'ranging') {
+                    structureEl.textContent = 'Lateral ↔️';
+                    structureEl.className = 'smc-value smc-neutral';
+                } else {
+                    structureEl.textContent = '--';
+                    structureEl.className = 'smc-value smc-neutral';
+                }
+            }
+
+            // Último evento (BOS / CHoCH)
+            const eventEl = document.getElementById(`${prefix}-smc-event`);
+            if (eventEl) {
+                if (smc.lastEvent) {
+                    const ev = smc.lastEvent;
+                    const tagClass = ev.type === 'CHoCH' ? 'smc-tag-choch' :
+                        (ev.direction === 'bullish' ? 'smc-tag-bos-bull' : 'smc-tag-bos-bear');
+                    eventEl.innerHTML = `${ev.type} <span class="smc-tag ${tagClass}">${ev.direction === 'bullish' ? '🟢 Alta' : '🔴 Baixa'}</span>`;
+                } else {
+                    eventEl.textContent = '--';
+                }
+            }
+
+            // Order Blocks
+            const obEl = document.getElementById(`${prefix}-smc-ob`);
+            if (obEl) {
+                if (smc.orderBlocks && smc.orderBlocks.length > 0) {
+                    const nearestOB = smc.orderBlocks.reduce((closest, ob) => {
+                        const obMid = (ob.high + ob.low) / 2;
+                        const closestMid = (closest.high + closest.low) / 2;
+                        return Math.abs(currentPrice - obMid) < Math.abs(currentPrice - closestMid) ? ob : closest;
+                    });
+                    const colorClass = nearestOB.type === 'bullish' ? 'smc-bullish' : 'smc-bearish';
+                    obEl.innerHTML = `<span class="${colorClass}">${nearestOB.type === 'bullish' ? '🟢' : '🔴'} $${nearestOB.low.toFixed(2)}-$${nearestOB.high.toFixed(2)}</span>`;
+                } else {
+                    obEl.textContent = 'Nenhum ativo';
+                }
+            }
+
+            // FVG (Imbalance)
+            const fvgEl = document.getElementById(`${prefix}-smc-fvg`);
+            if (fvgEl) {
+                if (smc.fvgs && smc.fvgs.length > 0) {
+                    const nearestFvg = smc.fvgs.reduce((closest, f) => {
+                        const fMid = (f.top + f.bottom) / 2;
+                        const closestMid = (closest.top + closest.bottom) / 2;
+                        return Math.abs(currentPrice - fMid) < Math.abs(currentPrice - closestMid) ? f : closest;
+                    });
+                    const colorClass = nearestFvg.type === 'bullish' ? 'smc-bullish' : 'smc-bearish';
+                    fvgEl.innerHTML = `<span class="${colorClass}">${nearestFvg.type === 'bullish' ? '🟢' : '🔴'} $${nearestFvg.bottom.toFixed(2)}-$${nearestFvg.top.toFixed(2)}</span>`;
+                } else {
+                    fvgEl.textContent = 'Nenhum aberto';
+                }
+            }
+
+            // BSL (liquidez acima)
+            const bslEl = document.getElementById(`${prefix}-smc-bsl`);
+            if (bslEl) {
+                if (smc.liquidity && smc.liquidity.bsl) {
+                    const distance = ((smc.liquidity.bsl.price - currentPrice) / currentPrice * 100).toFixed(2);
+                    bslEl.innerHTML = `$${smc.liquidity.bsl.price.toFixed(2)} <span style="color:var(--text-secondary);font-size:0.85em;">(+${distance}%)</span>`;
+                } else {
+                    bslEl.textContent = '--';
+                }
+            }
+
+            // SSL (liquidez abaixo)
+            const sslEl = document.getElementById(`${prefix}-smc-ssl`);
+            if (sslEl) {
+                if (smc.liquidity && smc.liquidity.ssl) {
+                    const distance = ((currentPrice - smc.liquidity.ssl.price) / currentPrice * 100).toFixed(2);
+                    sslEl.innerHTML = `$${smc.liquidity.ssl.price.toFixed(2)} <span style="color:var(--text-secondary);font-size:0.85em;">(-${distance}%)</span>`;
+                } else {
+                    sslEl.textContent = '--';
+                }
             }
         }
 
